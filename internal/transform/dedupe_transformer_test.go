@@ -43,3 +43,14 @@ func TestDedupeTransformer_ZeroWindowUsesDefault(t *testing.T) {
 		t.Fatal("duplicate should be suppressed")
 	}
 }
+
+func TestDedupeTransformer_AllowsAfterWindowExpires(t *testing.T) {
+	// Use a very short window so the entry expires quickly.
+	tr := transform.NewDedupe(50 * time.Millisecond)
+	tr.Transform("expiring")
+	time.Sleep(100 * time.Millisecond)
+	got := tr.Transform("expiring")
+	if got != "expiring" {
+		t.Fatalf("expected line to pass through after window expires, got %q", got)
+	}
+}
