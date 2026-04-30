@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"time"
 )
 
 // SyslogSource reads log lines from a UDP syslog listener.
@@ -46,8 +47,15 @@ func (s *SyslogSource) Lines(ctx context.Context) <-chan string {
 			default:
 			}
 
+			// Set a read deadline so we can periodically check ctx.Done()
+			// instead of blocking forever on ReadFromUDP.
+			s.conn.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+
 			n, _, err := s.conn.ReadFromUDP(buf)
 			if err != nil {
+				if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+					continue
+				}
 				return
 			}
 
